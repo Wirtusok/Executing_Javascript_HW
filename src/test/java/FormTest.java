@@ -11,6 +11,7 @@ import org.junit.jupiter.api.*;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.Assertions; // Импортируем Assertions
 
 public class FormTest {
     private static final Logger logger = LoggerFactory.getLogger(FormTest.class);
@@ -26,6 +27,7 @@ public class FormTest {
     @BeforeEach
     void setUp() {
         driver = new ChromeDriver();
+        // Используем Duration.ofSeconds(15) для согласованности
         wait = new WebDriverWait(driver, Duration.ofSeconds(15));
         logger.info("Инициализирован WebDriver");
     }
@@ -41,7 +43,7 @@ public class FormTest {
         String birthDate = System.getProperty("user.birthdate", "01.01.1990");
         String languageLevel = System.getProperty("user.language.level", "Средний");
 
-        driver.get(url);
+        driver.get(url.trim()); // Убираем лишние пробелы из URL
         logger.info("Открыта страница формы регистрации: " + url);
 
         // Заполнение формы
@@ -58,34 +60,31 @@ public class FormTest {
                           String confirmPassword, String birthDate, String languageLevel) {
         logger.info("Начинаем заполнение формы");
 
-        // Заполнение имени пользователя
+        // заполнение имени пользователя
         WebElement usernameField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("username")));
         usernameField.sendKeys(username);
         logger.info("Заполнено имя пользователя: " + username);
 
-        // Заполнение email
+        // заполнение email
         WebElement emailField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("email")));
         emailField.sendKeys(email);
         logger.info("Заполнен email: " + email);
 
-        // Заполнение пароля
+        // заполнение пароля
         WebElement passwordField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("password")));
         passwordField.sendKeys(password);
         logger.info("Заполнен пароль");
 
-        // Подтверждение пароля
+        // подтверждение пароля
         WebElement confirmPasswordField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("confirm_password")));
         confirmPasswordField.sendKeys(confirmPassword);
         logger.info("Подтвержден пароль");
 
-        // Проверка совпадения паролей
-        if (!password.equals(confirmPassword)) {
-            logger.error("Пароли не совпадают!");
-            throw new AssertionError("Пароли не совпадают");
-        }
+        // проверка совпадения паролей
+        Assertions.assertEquals(password, confirmPassword, "Пароли не совпадают");
         logger.info("Проверка паролей пройдена - пароли совпадают");
 
-        // Заполнение даты рождения
+        // заполнение даты рождения
         WebElement birthDateField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("birthdate")));
         birthDateField.sendKeys(birthDate);
         logger.info("Заполнена дата рождения: " + birthDate);
@@ -105,12 +104,7 @@ public class FormTest {
         // Прокручиваем к кнопке, если она не видна
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", submitButton);
 
-        // Даем немного времени на прокрутку
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        wait.until(ExpectedConditions.elementToBeClickable(submitButton));
 
         submitButton.click();
         logger.info("Форма отправлена");
@@ -127,15 +121,15 @@ public class FormTest {
             String resultText = resultElement.getText();
             logger.info("Результат отправки формы: " + resultText);
 
-            // Проверяем, что форма была успешно отправлена
-            Assertions.assertTrue(resultText != null && !resultText.isEmpty(),
-                    "Форма не была успешно отправлена. Результат: " + resultText);
+            // проверяем, что форма была успешно отправлена
+            Assertions.assertNotNull(resultText, "Результат отправки формы не найден");
+            Assertions.assertFalse(resultText.isEmpty(), "Результат отправки формы пуст");
 
         } catch (Exception e) {
-            // Если не нашли элемент с результатом, проверяем URL или другие признаки
+            // если не нашли элемент с результатом, проверяем URL или другие признаки
             logger.info("Текущий URL после отправки: " + driver.getCurrentUrl());
 
-            // Просто проверяем, что страница загрузилась
+            //проверяем, что страница загрузилась
             Assertions.assertTrue(driver.getCurrentUrl().contains("form"),
                     "Страница изменилась после отправки формы");
         }
